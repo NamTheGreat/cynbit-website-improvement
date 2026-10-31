@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import {
   calculateArchitectureEstimate,
+  getScopingAdvice,
   ArchitectureConfig,
   EstimationResult,
 } from "@/lib/calculator";
@@ -80,15 +81,18 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg, currentConfig: config }),
       });
+      if (!res.ok) throw new Error("API call failed, fallback to client engine");
       const data = await res.json();
       setChatHistory((prev) => [
         ...prev,
         { sender: data.agent || "Aria Architect", text: data.reply, recs: data.recommendations },
       ]);
     } catch {
+      // Client-side fallback for static GitHub Pages hosting
+      const fallback = getScopingAdvice(userMsg);
       setChatHistory((prev) => [
         ...prev,
-        { sender: "Aria Architect", text: "Architecture recommendations are ready. Cynbit architects can customize this stack for your needs." },
+        { sender: "Aria Architecture Assistant", text: fallback.reply, recs: fallback.recommendations },
       ]);
     } finally {
       setIsChatLoading(false);

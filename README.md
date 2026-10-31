@@ -19,7 +19,7 @@ This repository fulfills all three required deliverables for the **Cynbit Full S
 | Deliverable | Repository Asset | Description |
 | :--- | :--- | :--- |
 | **1. GitHub Repository** | [**`NamTheGreat/cynbit-website-improvement`**](https://github.com/NamTheGreat/cynbit-website-improvement) | Production-ready full-stack Next.js source code with clean commits, strict TypeScript typing, and automated tests. |
-| **2. Working Improvement / Prototype** | [**Live Deployed Application**](#live-deployment-guide) & Local Prototype | Fully interactive web application allowing visitors to configure tech stacks, view real-time architecture topologies, calculate budgets ($ & ₹), and consult with the embedded Aria AI Architect. |
+| **2. Working Improvement / Prototype** | [**Live Deployed Application (GitHub Pages)**](https://namthegreat.github.io/cynbit-website-improvement/) | Fully interactive web application allowing visitors to configure tech stacks, view real-time architecture topologies, calculate budgets ($ & ₹), and consult with the embedded Aria AI Architect. |
 | **3. Technical Report** | [**`TECHNICAL_REPORT.md`**](./TECHNICAL_REPORT.md) | Comprehensive engineering report detailing problem analysis (user vs. developer perspectives on `cynbit.in`), technical stack choices, implementation architecture, and projected conversion results. |
 
 ---

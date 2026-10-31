@@ -20,9 +20,8 @@ https://github.com/NamTheGreat/cynbit-website-improvement
 ### 2. Additional Deliverable Links *(Optional — Up to 4 links)*
 * **Link 1 (Live Deployed Working Prototype URL)**:
   ```text
-  https://cynbit-architecture-studio.vercel.app
+  https://namthegreat.github.io/cynbit-website-improvement/
   ```
-  *(Or your live deployment URL once imported on Vercel/Netlify).*
 * **Link 2 (Technical Report — Problem Statement, Stack & Results)**:
   ```text
   https://github.com/NamTheGreat/cynbit-website-improvement/blob/release/TECHNICAL_REPORT.md
