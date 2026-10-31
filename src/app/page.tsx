@@ -7,55 +7,41 @@ import {
   ArchitectureConfig,
   EstimationResult,
 } from "@/lib/calculator";
-import {
-  Layers,
-  Cpu,
-  Database,
-  Bot,
-  ShieldCheck,
-  CheckCircle2,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  FileText,
-  Sparkles,
-  Send,
-  ArrowRight,
-  Server,
-  Cloud,
-  ChevronRight,
-} from "lucide-react";
 
 export default function Home() {
   const [config, setConfig] = useState<ArchitectureConfig>({
     projectName: "NextGen AI Platform",
     projectType: "AI_AGENTS",
     scaleTier: "GROWTH",
-    selectedFrontend: ["Next.js 15 App Router", "Tailwind CSS"],
-    selectedBackend: ["FastAPI (Python)", "Node.js (TypeScript)"],
-    selectedDatabase: ["PostgreSQL", "Redis", "Vector DB (pgvector)"],
-    selectedAI: ["Autonomous Multi-Agent Workflow", "RAG & Knowledge Index"],
-    cynbitIntegrations: ["Cynbit Studio Evaluation"],
+    selectedFrontend: ["Next.js 15 App Router"],
+    selectedBackend: ["FastAPI Python", "Go Microservices"],
+    selectedDatabase: ["PostgreSQL HA", "Redis Cluster", "pgvector / Milvus"],
+    selectedAI: ["Multi-Agent Swarm", "RAG Vector Index"],
+    cynbitIntegrations: ["Cynbit Studio Engine", "TenantEase Multi-Tenant"],
     securityLevel: "Enterprise Hardened",
   });
 
-  const [activeTab, setActiveTab] = useState<"configure" | "topology" | "ai_assistant">("configure");
-  const [chatMessage, setChatMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState<Array<{ sender: string; text: string; recs?: string[] }>>([
+  const [currency, setCurrency] = useState<"USD" | "INR">("USD");
+  const [copiedBlueprint, setCopiedBlueprint] = useState(false);
+  const [ariaPrompt, setAriaPrompt] = useState("");
+  const [isAriaLoading, setIsAriaLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: string; text: string; recs?: string[] }>>([
     {
-      sender: "Aria Architecture Assistant",
-      text: "Hello! I am your Cynbit AI Solution Architect. Ask me about your technical stack, cloud budget trade-offs, or integration patterns.",
+      sender: "Aria AI Architect",
+      text: "System Telemetry Alert: Detected high-frequency RAG queries across active layers. Provisioning dedicated pgvector replica with HNSW indexing to cap p99 latency under 35ms.",
+      recs: ["Provision HNSW indexing for pgvector", "Enable Envoy mTLS v1.3 zero-trust", "Auto-reclaim idle worker pods"],
     },
   ]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const [copiedBlueprint, setCopiedBlueprint] = useState(false);
 
-  // Real-time calculation
+  // Real-time calculation based on selected configuration
   const estimate: EstimationResult = useMemo(() => {
     return calculateArchitectureEstimate(config);
   }, [config]);
 
-  // Toggle selection helper
+  // Currency multiplier (1 USD ~ 83.35 INR)
+  const usdToInr = 83.35;
+
+  // Toggle array item helper
   const toggleArrayItem = (key: keyof ArchitectureConfig, item: string) => {
     const current = (config[key] as string[]) || [];
     if (current.includes(item)) {
@@ -67,58 +53,141 @@ export default function Home() {
     }
   };
 
-  // AI chat handler
-  const handleSendMessage = async () => {
-    if (!chatMessage.trim()) return;
-    const userMsg = chatMessage.trim();
-    setChatHistory((prev) => [...prev, { sender: "You", text: userMsg }]);
-    setChatMessage("");
-    setIsChatLoading(true);
+  // Archetype selection helper
+  const archetypes = [
+    {
+      id: "AI_AGENTS" as const,
+      name: "Autonomous AI Swarms",
+      badge: "Multi-Agent",
+      badgeColor: "bg-[#00f2fe] text-[#002022]",
+      desc: "Multi-agent LangGraph orchestrator, high-throughput vector store, self-healing runtime.",
+      metric: "Concurrency: 25k req/s",
+      icon: "psychology",
+    },
+    {
+      id: "ENTERPRISE_SAAS" as const,
+      name: "Enterprise SaaS",
+      badge: "SOC2 / HIPAA",
+      badgeColor: "bg-[#5c03cb]/40 text-[#d2bbff]",
+      desc: "RLS multi-tenancy, strict cryptographic tenant boundary, role-based audit telemetry.",
+      metric: "Isolation: Row-Level SLA",
+      icon: "domain",
+    },
+    {
+      id: "FULLSTACK_WEB_MOBILE" as const,
+      name: "Full-Stack Web & Mobile",
+      badge: "Ultra-Fast Edge",
+      badgeColor: "bg-[#282a30] text-[#00dce6]",
+      desc: "Cross-platform unified GraphQL, edge-rendered hydration, offline sync primitives.",
+      metric: "Lighthouse: 99+ Core Vitals",
+      icon: "devices",
+    },
+    {
+      id: "CLOUD_MIGRATION" as const,
+      name: "Cloud Modernization",
+      badge: "Kubernetes Mesh",
+      badgeColor: "bg-[#67f4b7]/20 text-[#67f4b7]",
+      desc: "Containerization of monolithic cores, zero-downtime database cutover, Istio mTLS.",
+      metric: "Cutover: Zero Downtime",
+      icon: "cloud_sync",
+    },
+  ];
+
+  // Scale tiers helper
+  const tiers = [
+    {
+      id: "MVP" as const,
+      title: "MVP / Seed",
+      usd: "$12K – $25K",
+      inr: "₹10.0L – ₹20.8L",
+      throughput: "1.5M Requests / Month",
+    },
+    {
+      id: "GROWTH" as const,
+      title: "Growth Scale",
+      usd: "$45K – $90K",
+      inr: "₹37.5L – ₹75.0L",
+      throughput: "10M Requests / Month",
+    },
+    {
+      id: "ENTERPRISE" as const,
+      title: "Enterprise Sovereign",
+      usd: "$150K+ Custom",
+      inr: "₹1.25Cr+ Custom",
+      throughput: "100M+ Requests / Month",
+    },
+  ];
+
+  // Active component count
+  const activeComponentCount =
+    config.selectedFrontend.length +
+    config.selectedBackend.length +
+    config.selectedDatabase.length +
+    config.selectedAI.length +
+    config.cynbitIntegrations.length;
+
+  // Handle Aria AI submit
+  const handleAriaSubmit = async (promptOverride?: string) => {
+    const query = promptOverride || ariaPrompt;
+    if (!query.trim()) return;
+
+    setChatMessages((prev) => [...prev, { sender: "You", text: query }]);
+    setAriaPrompt("");
+    setIsAriaLoading(true);
 
     try {
       const res = await fetch("/api/scoping-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg, currentConfig: config }),
+        body: JSON.stringify({ message: query, currentConfig: config }),
       });
-      if (!res.ok) throw new Error("API call failed, fallback to client engine");
+      if (!res.ok) throw new Error("Fallback to client engine");
       const data = await res.json();
-      setChatHistory((prev) => [
+      setChatMessages((prev) => [
         ...prev,
-        { sender: data.agent || "Aria Architect", text: data.reply, recs: data.recommendations },
+        {
+          sender: "Aria AI Architect",
+          text: data.reply || "Synthesized architecture plan.",
+          recs: data.recommendations,
+        },
       ]);
     } catch {
-      // Client-side fallback for static GitHub Pages hosting
-      const fallback = getScopingAdvice(userMsg);
-      setChatHistory((prev) => [
+      // Client-side fallback for static export / GitHub Pages
+      const fallback = getScopingAdvice(query);
+      setChatMessages((prev) => [
         ...prev,
-        { sender: "Aria Architecture Assistant", text: fallback.reply, recs: fallback.recommendations },
+        {
+          sender: "Aria AI Architect",
+          text: fallback.reply,
+          recs: fallback.recommendations,
+        },
       ]);
     } finally {
-      setIsChatLoading(false);
+      setIsAriaLoading(false);
     }
   };
 
+  // Copy Blueprint
   const copyBlueprint = () => {
     const blueprint = `# Cynbit Architecture & Scoping Blueprint
 Project: ${config.projectName}
-Type: ${config.projectType} | Scale: ${config.scaleTier}
-Security: ${config.securityLevel}
+Archetype: ${config.projectType} | Scale Tier: ${config.scaleTier}
+Security Level: ${config.securityLevel}
 
-## Tech Stack
+## Configured Technology Stack
 Frontend: ${config.selectedFrontend.join(", ")}
 Backend: ${config.selectedBackend.join(", ")}
-Database: ${config.selectedDatabase.join(", ")}
-AI Workflows: ${config.selectedAI.join(", ")}
-Cynbit Integrations: ${config.cynbitIntegrations.join(", ")}
+Data & Storage: ${config.selectedDatabase.join(", ")}
+AI Orchestration: ${config.selectedAI.join(", ")}
+Cynbit Proprietary Fabric: ${config.cynbitIntegrations.join(", ")}
 
-## Estimates
-Timeline: ${estimate.estimatedWeeksMin} - ${estimate.estimatedWeeksMax} Weeks
-Budget: $${estimate.estimatedCostUsdMin.toLocaleString()} - $${estimate.estimatedCostUsdMax.toLocaleString()} USD (₹${(estimate.estimatedCostInrMin / 100000).toFixed(1)}L - ₹${(estimate.estimatedCostInrMax / 100000).toFixed(1)}L INR)
-Cloud Opex: ~$${estimate.monthlyCloudOpexUsd}/mo
-Feasibility: ${estimate.feasibilityRating} (Complexity Score: ${estimate.complexityScore}/100)
+## Financial & Timeline Projections
+Timeline: ${estimate.estimatedWeeksMin} - ${estimate.estimatedWeeksMax} Weeks (65% accelerated with Cynbit blueprints)
+Project Budget: $${estimate.estimatedCostUsdMin.toLocaleString()} - $${estimate.estimatedCostUsdMax.toLocaleString()} USD (₹${(estimate.estimatedCostInrMin / 100000).toFixed(1)}L - ₹${(estimate.estimatedCostInrMax / 100000).toFixed(1)}L INR)
+Monthly Cloud OPEX: ~$${estimate.monthlyCloudOpexUsd.toLocaleString()}/mo (₹${Math.round(estimate.monthlyCloudOpexUsd * usdToInr).toLocaleString()}/mo)
+Complexity Index: ${estimate.complexityScore} / 100 (${estimate.feasibilityRating})
 
-## Recommended Team
+## Recommended Engineering Squad
 ${estimate.teamComposition.map((t) => `- ${t}`).join("\n")}
 `;
     navigator.clipboard.writeText(blueprint);
@@ -126,522 +195,855 @@ ${estimate.teamComposition.map((t) => `- ${t}`).join("\n")}
     setTimeout(() => setCopiedBlueprint(false), 2500);
   };
 
+  // SVG Gauge calculations
+  const gaugeCircumference = 138;
+  const gaugeOffset = gaugeCircumference - (gaugeCircumference * estimate.complexityScore) / 100;
+
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Top Navbar */}
-      <header className="border-b border-gray-800/80 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/30">
-              C
+    <div className="min-h-screen flex flex-col bg-[#0b0d13] text-[#e2e2eb] cyber-grid-canvas">
+      {/* ================= TOP APP BAR / NAVIGATION ================= */}
+      <header className="bg-[#111319]/90 border-b border-[#3a494b]/60 sticky top-0 z-50 backdrop-blur-md">
+        <div className="flex justify-between items-center w-full px-4 sm:px-8 lg:px-10 h-16 max-w-[1680px] mx-auto">
+          {/* Brand & Version */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#1e1f26] border border-[#00f2fe]/40 flex items-center justify-center shadow-[0_0_14px_rgba(0,242,254,0.3)]">
+                <span className="material-symbols-outlined text-[#00f2fe] text-[20px]">hub</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-space font-bold tracking-wider text-[#e0fdff] text-base leading-tight">
+                  CYNBIT{" "}
+                  <span className="text-[#00f2fe] font-mono-code text-[12px] font-normal tracking-normal">
+                    // ARCHITECTURE STUDIO
+                  </span>
+                </span>
+                <span className="text-[10px] font-mono-code text-[#849495] leading-none">
+                  BUILD v2.4.8 — CORE ENGINE
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="font-bold text-white tracking-tight">Cynbit Technologies</span>
-              <span className="text-xs text-blue-400 block font-mono">Architecture Studio</span>
+
+            {/* Live Edge Status Pill */}
+            <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e1f26] border border-[#4edea3]/30">
+              <span className="w-2 h-2 rounded-full bg-[#4edea3] neon-pulse-emerald"></span>
+              <span className="text-[11px] font-medium text-[#4edea3]">
+                Live Edge Engine Active • 14ms latency
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab("configure")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                activeTab === "configure" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"
-              }`}
+
+          {/* Center Navigation Pill Tabs */}
+          <nav className="hidden lg:flex items-center gap-4 border border-[#3a494b]/60 rounded-full px-4 py-1.5 bg-[#0c0e14]/80 backdrop-blur-sm text-sm">
+            <a
+              href="#configurator"
+              className="text-[#00f2fe] border-b-2 border-[#00f2fe] pb-0.5 font-medium flex items-center gap-1.5 transition-colors"
             >
-              Stack Configurator
-            </button>
-            <button
-              onClick={() => setActiveTab("topology")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                activeTab === "topology" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"
-              }`}
+              <span className="material-symbols-outlined text-[16px]">account_tree</span>
+              <span>Configurator</span>
+            </a>
+            <a
+              href="#topology"
+              className="text-[#b9cacb] hover:text-[#e2e2eb] transition-colors flex items-center gap-1.5"
             >
-              Topology Map
-            </button>
-            <button
-              onClick={() => setActiveTab("ai_assistant")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition ${
-                activeTab === "ai_assistant"
-                  ? "bg-purple-600 text-white"
-                  : "text-purple-400 hover:text-purple-300"
-              }`}
+              <span className="material-symbols-outlined text-[16px]">lan</span>
+              <span>Topology</span>
+            </a>
+            <a
+              href="#aria"
+              className="text-[#b9cacb] hover:text-[#e2e2eb] transition-colors flex items-center gap-1.5"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              Aria AI Architect
+              <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+              <span>Aria AI</span>
+            </a>
+            <a
+              href="#telemetry"
+              className="text-[#b9cacb] hover:text-[#e2e2eb] transition-colors flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">monitoring</span>
+              <span>Telemetry</span>
+            </a>
+          </nav>
+
+          {/* Right Control Matrix: Currency, Export Blueprint & User */}
+          <div className="flex items-center gap-3">
+            {/* Currency Segmented Switch */}
+            <div className="flex items-center bg-[#1e1f26] rounded-lg p-0.5 border border-[#3a494b] text-[11px] font-semibold">
+              <button
+                onClick={() => setCurrency("USD")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  currency === "USD"
+                    ? "bg-[#00f2fe] text-[#002022] font-bold shadow-[0_0_8px_rgba(0,242,254,0.4)]"
+                    : "text-[#b9cacb] hover:text-[#e2e2eb]"
+                }`}
+              >
+                USD $
+              </button>
+              <button
+                onClick={() => setCurrency("INR")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  currency === "INR"
+                    ? "bg-[#00f2fe] text-[#002022] font-bold shadow-[0_0_8px_rgba(0,242,254,0.4)]"
+                    : "text-[#b9cacb] hover:text-[#e2e2eb]"
+                }`}
+              >
+                INR ₹
+              </button>
+            </div>
+
+            {/* Trailing Primary Action: Export Blueprint */}
+            <button
+              onClick={copyBlueprint}
+              className="relative group overflow-hidden rounded-lg px-3.5 py-1.5 bg-[#1e1f26] border-gradient-cyan-violet shadow-[0_0_16px_rgba(0,242,254,0.2)] hover:shadow-[0_0_24px_rgba(0,242,254,0.5)] transition-all active:scale-[0.98]"
+            >
+              <span className="flex items-center gap-1.5 text-[#e0fdff] font-space text-xs font-semibold">
+                <span className="material-symbols-outlined text-[16px]">
+                  {copiedBlueprint ? "check_circle" : "download_for_offline"}
+                </span>
+                <span>{copiedBlueprint ? "Blueprint Copied!" : "Export Blueprint"}</span>
+              </span>
             </button>
+
+            {/* User Architect Avatar & Glyph */}
+            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-[#3a494b]/60">
+              <div className="relative">
+                <div className="w-8 h-8 rounded-full bg-[#1e1f26] border border-[#00f2fe]/50 flex items-center justify-center font-bold text-xs text-[#00f2fe]">
+                  NK
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#4edea3] rounded-full border-2 border-[#0c0e14]"></span>
+              </div>
+              <div className="hidden 2xl:flex flex-col text-left">
+                <span className="text-xs font-medium text-[#e2e2eb] leading-tight">Naman Kalia</span>
+                <span className="text-[10px] font-mono-code text-[#b9cacb] leading-none">
+                  Chief Cloud Architect
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-        {/* Hero Banner */}
-        <div className="mb-8 text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            New Website Capability • Interactive Full-Stack Project Estimator
+      {/* ================= HERO SECTION ================= */}
+      <section className="relative pt-10 pb-8 px-4 sm:px-8 border-b border-[#3a494b]/40 overflow-hidden">
+        {/* Glow Backdrop Orbs */}
+        <div className="absolute -top-24 left-1/4 w-96 h-96 bg-[#00f2fe]/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#5c03cb]/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="max-w-6xl mx-auto flex flex-col items-center text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#191b22] border border-[#00f2fe]/30 mb-4 shadow-[0_0_12px_rgba(0,242,254,0.15)]">
+            <span className="material-symbols-outlined text-[#00f2fe] text-[16px]">bolt</span>
+            <span className="text-[11px] font-mono-code font-semibold tracking-wider text-[#e0fdff]">
+              CYNBIT ADAPTIVE SYNTHESIS ENGINE v4.2
+            </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
-            Design Your Architecture. <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-sky-300">Estimate in Real Time.</span>
+
+          <h1 className="text-3xl sm:text-5xl font-space font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#e0fdff] via-[#00f2fe] to-[#d2bbff] tracking-tight max-w-4xl">
+            Architect Your System. Estimate in Real Time.
           </h1>
-          <p className="text-sm text-gray-400 leading-relaxed">
-            Eliminating vague static contact forms. Configure your tech stack, integrate Cynbit proprietary software suites, visualize system topology, and get instant budget & timeline projections.
+
+          <p className="mt-3 text-sm sm:text-base text-[#b9cacb] max-w-2xl leading-relaxed">
+            Deterministic cloud orchestration, multi-agent AI framework sizing, and zero-waste
+            infrastructure modeling tailored for high-scale enterprise deployments.
           </p>
-        </div>
 
-        {/* 2-Column Grid: Configurator vs Live Output Deck */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column (8 cols): Active Tab Views */}
-          <div className="lg:col-span-7 space-y-6">
-            {activeTab === "configure" && (
-              <div className="space-y-6">
-                {/* Project Overview Card */}
-                <div className="glass-panel p-6 rounded-2xl">
-                  <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-blue-400" />
-                    1. Project Scope & Scale
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                    {[
-                      { id: "AI_AGENTS", label: "Autonomous AI Agents" },
-                      { id: "ENTERPRISE_SAAS", label: "Enterprise SaaS" },
-                      { id: "FULLSTACK_WEB_MOBILE", label: "Web & Mobile" },
-                      { id: "CLOUD_MIGRATION", label: "Cloud Modernization" },
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => setConfig({ ...config, projectType: t.id as any })}
-                        className={`p-3 rounded-xl border text-xs font-medium text-left transition ${
-                          config.projectType === t.id
-                            ? "bg-blue-600/20 border-blue-500 text-white"
-                            : "bg-gray-900/50 border-gray-800 text-gray-400 hover:border-gray-700"
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Scale Tier */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { id: "MVP", label: "Startup MVP", desc: "<10k DAU" },
-                      { id: "GROWTH", label: "Growth Platform", desc: "10k-250k DAU" },
-                      { id: "ENTERPRISE", label: "High-Availability", desc: "Multi-Region / 99.99%" },
-                    ].map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => setConfig({ ...config, scaleTier: s.id as any })}
-                        className={`p-3 rounded-xl border text-left transition ${
-                          config.scaleTier === s.id
-                            ? "bg-blue-600/20 border-blue-500 text-white"
-                            : "bg-gray-900/50 border-gray-800 text-gray-400 hover:border-gray-700"
-                        }`}
-                      >
-                        <div className="text-xs font-bold">{s.label}</div>
-                        <div className="text-[10px] text-gray-500 mt-0.5">{s.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tech Stack Selection */}
-                <div className="glass-panel p-6 rounded-2xl space-y-5">
-                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-blue-400" />
-                    2. Select Architecture Components
-                  </h3>
-
-                  {/* Frontend */}
-                  <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                      Client & Frontend Layer
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "Next.js 15 App Router",
-                        "React 19 Server Components",
-                        "Tailwind CSS",
-                        "React Native (Mobile)",
-                        "Flutter SDK",
-                      ].map((item) => (
-                        <button
-                          key={item}
-                          onClick={() => toggleArrayItem("selectedFrontend", item)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                            config.selectedFrontend.includes(item)
-                              ? "bg-blue-600/20 border-blue-500 text-blue-300"
-                              : "bg-gray-900/40 border-gray-800 text-gray-400 hover:border-gray-700"
-                          }`}
-                        >
-                          {config.selectedFrontend.includes(item) ? "✓ " : "+ "}
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Backend & Compute */}
-                  <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                      Backend & Compute Tier
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "FastAPI (Python)",
-                        "Node.js (TypeScript)",
-                        "Go Microservices",
-                        "Docker / ECS Containerized",
-                        "Serverless Workers",
-                      ].map((item) => (
-                        <button
-                          key={item}
-                          onClick={() => toggleArrayItem("selectedBackend", item)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                            config.selectedBackend.includes(item)
-                              ? "bg-blue-600/20 border-blue-500 text-blue-300"
-                              : "bg-gray-900/40 border-gray-800 text-gray-400 hover:border-gray-700"
-                          }`}
-                        >
-                          {config.selectedBackend.includes(item) ? "✓ " : "+ "}
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Database & Caching */}
-                  <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                      Database & Caching Layer
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "PostgreSQL",
-                        "Prisma ORM",
-                        "Redis Caching",
-                        "Vector DB (pgvector)",
-                        "Supabase / Managed SQL",
-                      ].map((item) => (
-                        <button
-                          key={item}
-                          onClick={() => toggleArrayItem("selectedDatabase", item)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                            config.selectedDatabase.includes(item)
-                              ? "bg-emerald-600/20 border-emerald-500 text-emerald-300"
-                              : "bg-gray-900/40 border-gray-800 text-gray-400 hover:border-gray-700"
-                          }`}
-                        >
-                          {config.selectedDatabase.includes(item) ? "✓ " : "+ "}
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* AI & Automation */}
-                  <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                      AI & Automation Capabilities
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "Autonomous Multi-Agent Workflow",
-                        "RAG & Knowledge Index",
-                        "Multi-Modal Vision (OCR/Doc)",
-                        "Fine-Tuned Small Language Models",
-                      ].map((item) => (
-                        <button
-                          key={item}
-                          onClick={() => toggleArrayItem("selectedAI", item)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                            config.selectedAI.includes(item)
-                              ? "bg-purple-600/20 border-purple-500 text-purple-300"
-                              : "bg-gray-900/40 border-gray-800 text-gray-400 hover:border-gray-700"
-                          }`}
-                        >
-                          {config.selectedAI.includes(item) ? "✓ " : "+ "}
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Cynbit Ecosystem Software */}
-                  <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                      Cynbit Software Suite Integrations
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "Cynbit Studio Evaluation",
-                        "TenantEase Rent & Lease Engine",
-                        "Revio Review & Sentiment Engine",
-                        "BitElevate Curriculum",
-                      ].map((item) => (
-                        <button
-                          key={item}
-                          onClick={() => toggleArrayItem("cynbitIntegrations", item)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                            config.cynbitIntegrations.includes(item)
-                              ? "bg-sky-600/20 border-sky-400 text-sky-200"
-                              : "bg-gray-900/40 border-gray-800 text-gray-400 hover:border-gray-700"
-                          }`}
-                        >
-                          {config.cynbitIntegrations.includes(item) ? "✓ " : "+ "}
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+          {/* Three Telemetry Metric Floating Pills */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-4xl">
+            {/* Metric Pill 1 */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#191b22]/90 border border-[#3a494b] hover:border-[#00f2fe]/50 transition-all shadow-sm">
+              <div className="w-8 h-8 rounded bg-[#00f2fe]/10 flex items-center justify-center text-[#00f2fe]">
+                <span className="material-symbols-outlined text-[18px]">currency_exchange</span>
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-semibold text-[#e0fdff]">Real-time USD / INR Engine</div>
+                <div className="text-mono-code text-[11px] text-[#b9cacb]">
+                  {currency === "USD" ? "1 USD = 83.35 INR [Synced]" : "1 INR = 0.012 USD [Real-Time]"}
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Topology Map Tab */}
-            {activeTab === "topology" && (
-              <div className="glass-panel p-6 rounded-2xl space-y-6">
-                <div>
-                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                    <Server className="w-4 h-4 text-blue-400" />
-                    Dynamic Architecture Topology Visualizer
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Real-time visual map reflecting your configured tiers and component data flows.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Tier 1 */}
-                  <div className="p-4 rounded-xl bg-gray-900/70 border border-gray-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block mb-2">
-                      Client & Presentation Tier
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {estimate.architectureTopology.clientTier.map((c) => (
-                        <span key={c} className="px-2.5 py-1 rounded bg-blue-900/30 border border-blue-700/50 text-blue-300 text-xs">
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center text-gray-600 font-mono text-xs">▼ HTTPS / WAF Traffic ▼</div>
-
-                  {/* Tier 2 */}
-                  <div className="p-4 rounded-xl bg-gray-900/70 border border-gray-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block mb-2">
-                      Edge Gateway & Security Tier
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {estimate.architectureTopology.edgeGatewayTier.map((c) => (
-                        <span key={c} className="px-2.5 py-1 rounded bg-sky-900/30 border border-sky-700/50 text-sky-300 text-xs">
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center text-gray-600 font-mono text-xs">▼ Load Balanced / VPC Network ▼</div>
-
-                  {/* Tier 3 */}
-                  <div className="p-4 rounded-xl bg-gray-900/70 border border-gray-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 block mb-2">
-                      Compute & Business Logic Tier
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {estimate.architectureTopology.computeTier.map((c) => (
-                        <span key={c} className="px-2.5 py-1 rounded bg-purple-900/30 border border-purple-700/50 text-purple-300 text-xs">
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center text-gray-600 font-mono text-xs">▼ Persistence & AI Pipelines ▼</div>
-
-                  {/* Tier 4 */}
-                  <div className="p-4 rounded-xl bg-gray-900/70 border border-gray-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-2">
-                      Data, Vector & Ecosystem Services
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {estimate.architectureTopology.dataAndAiTier.map((c) => (
-                        <span key={c} className="px-2.5 py-1 rounded bg-emerald-900/30 border border-emerald-700/50 text-emerald-300 text-xs">
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            {/* Metric Pill 2 */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#191b22]/90 border border-[#3a494b] hover:border-[#d2bbff]/50 transition-all shadow-sm">
+              <div className="w-8 h-8 rounded bg-[#5c03cb]/20 flex items-center justify-center text-[#d2bbff]">
+                <span className="material-symbols-outlined text-[18px]">security</span>
               </div>
-            )}
-
-            {/* AI Assistant Tab */}
-            {activeTab === "ai_assistant" && (
-              <div className="glass-panel p-6 rounded-2xl flex flex-col h-[520px]">
-                <div className="border-b border-gray-800 pb-3 mb-4">
-                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    Aria Architecture Assistant
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    Ask questions about your tech stack choices, trade-offs, and Cynbit implementations.
-                  </p>
-                </div>
-
-                {/* Message Log */}
-                <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                  {chatHistory.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`p-3 rounded-xl text-xs leading-relaxed ${
-                        msg.sender === "You"
-                          ? "bg-blue-600/30 border border-blue-500/40 text-white ml-8"
-                          : "bg-gray-900 border border-gray-800 text-gray-300 mr-8"
-                      }`}
-                    >
-                      <span className="font-bold text-[10px] block text-gray-400 mb-1">{msg.sender}</span>
-                      {msg.text}
-                      {msg.recs && (
-                        <ul className="mt-2 space-y-1 list-disc list-inside text-sky-400">
-                          {msg.recs.map((r, idx) => (
-                            <li key={idx}>{r}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                  {isChatLoading && (
-                    <div className="p-3 rounded-xl text-xs bg-gray-900 border border-gray-800 text-gray-400 animate-pulse">
-                      Aria is synthesizing architectural recommendations...
-                    </div>
-                  )}
-                </div>
-
-                {/* Chat Input */}
-                <div className="mt-4 flex gap-2">
-                  <input
-                    type="text"
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    placeholder="e.g. How can we minimize cloud cost for multi-agent workflows?"
-                    className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={isChatLoading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    Send
-                  </button>
-                </div>
+              <div className="text-left">
+                <div className="text-xs font-semibold text-[#d2bbff]">Deterministic Cost & Latency</div>
+                <div className="text-mono-code text-[11px] text-[#b9cacb]">p99 Target &lt; 40ms Edge SLA</div>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Right Column (5 cols): Real-Time Estimation Deck */}
-          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
-            <div className="glass-panel p-6 rounded-2xl border-blue-500/30 space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white">Project Estimates</h3>
-                  <p className="text-xs text-gray-400">Instant algorithmic projection</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                  {estimate.feasibilityRating} Feasibility
-                </span>
+            {/* Metric Pill 3 */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#191b22]/90 border border-[#3a494b] hover:border-[#4edea3]/50 transition-all shadow-sm">
+              <div className="w-8 h-8 rounded bg-[#67f4b7]/10 flex items-center justify-center text-[#4edea3]">
+                <span className="material-symbols-outlined text-[18px]">energy_savings_leaf</span>
               </div>
-
-              {/* Stat Cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
-                    <Calendar className="w-3.5 h-3.5 text-blue-400" />
-                    Timeline
-                  </div>
-                  <div className="text-xl font-black text-white">
-                    {estimate.estimatedWeeksMin}–{estimate.estimatedWeeksMax} <span className="text-xs font-normal text-gray-400">weeks</span>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                    Est. Investment
-                  </div>
-                  <div className="text-xl font-black text-white">
-                    ${(estimate.estimatedCostUsdMin / 1000).toFixed(0)}k–${(estimate.estimatedCostUsdMax / 1000).toFixed(0)}k
-                  </div>
-                  <div className="text-[10px] text-gray-400">
-                    ₹{(estimate.estimatedCostInrMin / 100000).toFixed(1)}L–₹{(estimate.estimatedCostInrMax / 100000).toFixed(1)}L INR
-                  </div>
-                </div>
-              </div>
-
-              {/* Monthly Cloud OPEX & Complexity */}
-              <div className="p-4 rounded-xl bg-gray-900/40 border border-gray-800 space-y-3">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-400">Estimated Monthly Cloud OPEX:</span>
-                  <span className="font-bold text-white">${estimate.monthlyCloudOpexUsd} / mo</span>
-                </div>
-                <div>
-                  <div className="flex justify-between items-center text-xs mb-1">
-                    <span className="text-gray-400">System Complexity Score:</span>
-                    <span className="font-bold text-blue-400">{estimate.complexityScore} / 100</span>
-                  </div>
-                  <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300"
-                      style={{ width: `${estimate.complexityScore}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Team Composition */}
-              <div>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                  Recommended Team Composition
-                </span>
-                <ul className="space-y-1.5">
-                  {estimate.teamComposition.map((m, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-xs text-gray-300">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                      {m}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col gap-2">
-                <button
-                  onClick={copyBlueprint}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition"
-                >
-                  <FileText className="w-4 h-4" />
-                  {copiedBlueprint ? "Copied Architectural Blueprint!" : "Copy Scoping Blueprint"}
-                </button>
-                <a
-                  href="https://cynbit.in/contact"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2.5 bg-gray-900 hover:bg-gray-800 text-gray-300 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 border border-gray-800 transition"
-                >
-                  Schedule Architecture Review with Cynbit Team
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+              <div className="text-left">
+                <div className="text-xs font-semibold text-[#e1ffec]">Zero-Waste FinOps Topology</div>
+                <div className="text-mono-code text-[11px] text-[#b9cacb]">Auto-reclaims idle pods (-28%)</div>
               </div>
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ================= MAIN TWO-COLUMN WORKSPACE ================= */}
+      <main className="px-4 sm:px-8 py-8 max-w-[1680px] mx-auto w-full flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* ================= LEFT COLUMN: ARCHITECTURE CONFIGURATOR (7 Cols) ================= */}
+          <section className="lg:col-span-7 flex flex-col gap-6" id="configurator">
+            {/* Module Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-[#3a494b]/60">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#00f2fe]">tune</span>
+                <h2 className="font-space font-semibold text-xl text-[#e0fdff]">
+                  Architecture Configurator
+                </h2>
+              </div>
+              <span className="text-[11px] font-mono-code text-[#849495]">STEP 01 — TARGET TOPOLOGY</span>
+            </div>
+
+            {/* 1. Core System Archetype Selector Cards */}
+            <div>
+              <label className="text-[11px] font-mono-code text-[#b9cacb] mb-2 block tracking-wider uppercase">
+                1. Select Core System Archetype
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {archetypes.map((arch) => {
+                  const isSelected = config.projectType === arch.id;
+                  return (
+                    <button
+                      key={arch.id}
+                      onClick={() => setConfig({ ...config, projectType: arch.id })}
+                      className={`text-left p-4 rounded-lg transition-all relative flex flex-col justify-between group ${
+                        isSelected
+                          ? "bg-[#1e1f26] border-2 border-[#00f2fe] shadow-[0_0_16px_rgba(0,242,254,0.25)]"
+                          : "bg-[#191b22] border border-[#3a494b] hover:border-[#849495] hover:bg-[#1e1f26]"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div
+                            className={`w-9 h-9 rounded flex items-center justify-center transition-transform group-hover:scale-105 ${
+                              isSelected
+                                ? "bg-[#00f2fe]/15 text-[#00f2fe]"
+                                : "bg-[#282a30] text-[#b9cacb]"
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-[22px]">{arch.icon}</span>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] font-semibold ${arch.badgeColor}`}
+                          >
+                            {arch.badge}
+                          </span>
+                        </div>
+                        <h3
+                          className={`font-space font-semibold text-base ${
+                            isSelected ? "text-[#e0fdff]" : "text-[#e2e2eb]"
+                          }`}
+                        >
+                          {arch.name}
+                        </h3>
+                        <p className="text-xs text-[#b9cacb] mt-1 leading-relaxed">{arch.desc}</p>
+                      </div>
+                      <div className="mt-3 pt-2 border-t border-[#3a494b]/30 flex items-center justify-between text-mono-code text-[11px]">
+                        <span className={isSelected ? "text-[#00f2fe]" : "text-[#849495]"}>
+                          {arch.metric}
+                        </span>
+                        <span
+                          className={`material-symbols-outlined text-[16px] ${
+                            isSelected ? "text-[#00f2fe]" : "text-[#849495]"
+                          }`}
+                        >
+                          {isSelected ? "check_circle" : "radio_button_unchecked"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Scale & Workload Velocity Tier */}
+            <div className="bg-[#191b22] p-4 rounded-lg border border-[#3a494b]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3">
+                <div>
+                  <span className="text-[11px] font-mono-code text-[#b9cacb] block tracking-wider uppercase">
+                    2. Scale & Workload Velocity Tier
+                  </span>
+                  <span className="text-xs text-[#849495]">
+                    Calibrates redundancy, multi-region routing & throughput resilience
+                  </span>
+                </div>
+                <span className="text-mono-code text-xs text-[#00f2fe] font-semibold mt-1 sm:mt-0">
+                  {config.scaleTier === "MVP" && "1.5M Requests / Month"}
+                  {config.scaleTier === "GROWTH" && "10M Requests / Month"}
+                  {config.scaleTier === "ENTERPRISE" && "100M+ Requests / Month"}
+                </span>
+              </div>
+
+              {/* Tier Segments */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 bg-[#0c0e14] p-1.5 rounded-lg border border-[#3a494b]">
+                {tiers.map((t) => {
+                  const isSelected = config.scaleTier === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setConfig({ ...config, scaleTier: t.id })}
+                      className={`px-3 py-2.5 rounded text-left transition-all ${
+                        isSelected
+                          ? "bg-[#1e1f26] border border-[#00f2fe]/60 shadow-[0_0_12px_rgba(0,242,254,0.2)]"
+                          : "text-[#b9cacb] hover:text-[#e2e2eb] hover:bg-[#1e1f26]"
+                      }`}
+                    >
+                      <div
+                        className={`text-sm font-semibold ${
+                          isSelected ? "text-[#e0fdff]" : "text-[#e2e2eb]"
+                        }`}
+                      >
+                        {t.title}
+                      </div>
+                      <div
+                        className={`text-mono-code text-[11px] ${
+                          isSelected ? "text-[#00f2fe]" : "text-[#849495]"
+                        }`}
+                      >
+                        {currency === "USD" ? t.usd : t.inr}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Component Selection Matrix */}
+            <div className="bg-[#191b22] p-4 rounded-lg border border-[#3a494b] flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-2 border-b border-[#3a494b]/40">
+                <span className="text-[11px] font-mono-code text-[#b9cacb] tracking-wider uppercase">
+                  3. Technology Component Stack
+                </span>
+                <span className="text-mono-code text-[11px] text-[#00f2fe]">
+                  {activeComponentCount} Selected
+                </span>
+              </div>
+
+              {/* Category 1: Frontend */}
+              <div>
+                <div className="text-[11px] font-mono-code text-[#849495] mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">desktop_windows</span>
+                  FRONTEND & CLIENT RUNTIME
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["Next.js 15 App Router", "React 19 Client", "Flutter / Native Swift"].map((item) => {
+                    const active = config.selectedFrontend.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => toggleArrayItem("selectedFrontend", item)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+                          active
+                            ? "border border-[#00f2fe] bg-[#00f2fe]/10 text-[#00f2fe] shadow-[0_0_8px_rgba(0,242,254,0.25)]"
+                            : "border border-[#3a494b] bg-[#1e1f26] text-[#b9cacb] hover:text-[#e2e2eb]"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            active ? "bg-[#00f2fe]" : "bg-[#849495]"
+                          }`}
+                        ></span>
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Category 2: Compute */}
+              <div>
+                <div className="text-[11px] font-mono-code text-[#849495] mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">memory</span>
+                  BACKEND & COMPUTE FABRIC
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["FastAPI Python", "Go Microservices", "Node.js / Bun Core"].map((item) => {
+                    const active = config.selectedBackend.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => toggleArrayItem("selectedBackend", item)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+                          active
+                            ? "border border-[#00f2fe] bg-[#00f2fe]/10 text-[#00f2fe] shadow-[0_0_8px_rgba(0,242,254,0.25)]"
+                            : "border border-[#3a494b] bg-[#1e1f26] text-[#b9cacb] hover:text-[#e2e2eb]"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            active ? "bg-[#00f2fe]" : "bg-[#849495]"
+                          }`}
+                        ></span>
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Category 3: Data & Storage */}
+              <div>
+                <div className="text-[11px] font-mono-code text-[#849495] mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">database</span>
+                  PERSISTENCE & CACHE TIERS
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["PostgreSQL HA", "Redis Cluster", "pgvector / Milvus"].map((item) => {
+                    const active = config.selectedDatabase.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => toggleArrayItem("selectedDatabase", item)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+                          active
+                            ? "border border-[#00f2fe] bg-[#00f2fe]/10 text-[#00f2fe] shadow-[0_0_8px_rgba(0,242,254,0.25)]"
+                            : "border border-[#3a494b] bg-[#1e1f26] text-[#b9cacb] hover:text-[#e2e2eb]"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            active ? "bg-[#00f2fe]" : "bg-[#849495]"
+                          }`}
+                        ></span>
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Category 4: AI & Intelligence */}
+              <div>
+                <div className="text-[11px] font-mono-code text-[#849495] mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">neurology</span>
+                  INTELLIGENCE & AGENT ORCHESTRATION
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["Multi-Agent Swarm", "RAG Vector Index", "Local LLM / Ollama"].map((item) => {
+                    const active = config.selectedAI.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => toggleArrayItem("selectedAI", item)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+                          active
+                            ? "border border-[#00f2fe] bg-[#00f2fe]/10 text-[#00f2fe] shadow-[0_0_8px_rgba(0,242,254,0.25)]"
+                            : "border border-[#3a494b] bg-[#1e1f26] text-[#b9cacb] hover:text-[#e2e2eb]"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            active ? "bg-[#00f2fe]" : "bg-[#849495]"
+                          }`}
+                        ></span>
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Category 5: Cynbit Proprietary Fabric */}
+              <div>
+                <div className="text-[11px] font-mono-code text-[#d2bbff] mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">stars</span>
+                  CYNBIT PROPRIETARY FABRIC
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["Cynbit Studio Engine", "TenantEase Multi-Tenant", "Revio Billing Fabric"].map((item) => {
+                    const active = config.cynbitIntegrations.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => toggleArrayItem("cynbitIntegrations", item)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
+                          active
+                            ? "border border-[#d2bbff] bg-[#5c03cb]/20 text-[#d2bbff] shadow-[0_0_8px_rgba(144,85,255,0.25)]"
+                            : "border border-[#3a494b] bg-[#1e1f26] text-[#b9cacb] hover:text-[#e2e2eb]"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            active ? "bg-[#d2bbff]" : "bg-[#849495]"
+                          }`}
+                        ></span>
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ================= RIGHT COLUMN: LIVE ESTIMATION DECK & VISUALIZER (5 Cols) ================= */}
+          <section className="lg:col-span-5 flex flex-col gap-6" id="telemetry">
+            {/* Bento Telemetry Metric Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Card 1: Estimated Timeline */}
+              <div className="p-4 rounded-lg bg-[#191b22] border border-[#3a494b] relative overflow-hidden">
+                <div className="text-[11px] font-mono-code text-[#849495] flex items-center justify-between">
+                  <span>TIMELINE</span>
+                  <span className="material-symbols-outlined text-[16px] text-[#00f2fe]">speed</span>
+                </div>
+                <div className="mt-1 font-mono-code text-xl font-bold text-[#e0fdff]">
+                  {estimate.estimatedWeeksMin} - {estimate.estimatedWeeksMax} Weeks
+                </div>
+                <div className="mt-2 flex items-center gap-1.5 text-[11px] font-mono-code text-[#4edea3]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]"></span>
+                  <span>65% faster with Cynbit blueprints</span>
+                </div>
+              </div>
+
+              {/* Card 2: Budget Range */}
+              <div className="p-4 rounded-lg bg-[#191b22] border border-[#3a494b] relative overflow-hidden">
+                <div className="text-[11px] font-mono-code text-[#849495] flex items-center justify-between">
+                  <span>PROJECT BUDGET</span>
+                  <span className="material-symbols-outlined text-[16px] text-[#d2bbff]">
+                    monetization_on
+                  </span>
+                </div>
+                <div className="mt-1 font-mono-code text-lg sm:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#00f2fe] to-[#d2bbff]">
+                  {currency === "USD"
+                    ? `$${estimate.estimatedCostUsdMin.toLocaleString()} – $${estimate.estimatedCostUsdMax.toLocaleString()}`
+                    : `₹${(estimate.estimatedCostInrMin / 100000).toFixed(1)}L – ₹${(
+                        estimate.estimatedCostInrMax / 100000
+                      ).toFixed(1)}L`}
+                </div>
+                <div className="mt-2 flex items-center gap-1.5 text-[11px] font-mono-code text-[#4edea3]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]"></span>
+                  <span>18.4% FinOps Optimized</span>
+                </div>
+              </div>
+
+              {/* Card 3: Monthly Cloud OPEX */}
+              <div className="p-4 rounded-lg bg-[#191b22] border border-[#3a494b] relative overflow-hidden">
+                <div className="text-[11px] font-mono-code text-[#849495] flex items-center justify-between">
+                  <span>CLOUD OPEX</span>
+                  <span className="material-symbols-outlined text-[16px] text-[#849495]">cloud</span>
+                </div>
+                <div className="mt-1 font-mono-code text-xl font-bold text-[#e2e2eb]">
+                  {currency === "USD"
+                    ? `$${estimate.monthlyCloudOpexUsd.toLocaleString()} / mo`
+                    : `₹${Math.round(estimate.monthlyCloudOpexUsd * usdToInr).toLocaleString()} / mo`}
+                </div>
+                <div className="mt-2 text-[11px] font-mono-code text-[#b9cacb] truncate">
+                  AWS/GCP serverless & DB cap
+                </div>
+              </div>
+
+              {/* Card 4: Radial Complexity Gauge */}
+              <div className="p-4 rounded-lg bg-[#191b22] border border-[#3a494b] flex items-center justify-between relative overflow-hidden">
+                <div>
+                  <div className="text-[11px] font-mono-code text-[#849495]">COMPLEXITY</div>
+                  <div className="font-mono-code text-xl font-bold text-[#00f2fe] mt-1">
+                    {estimate.complexityScore}{" "}
+                    <span className="text-xs font-normal text-[#849495]">/ 100</span>
+                  </div>
+                  <div className="text-[11px] font-mono-code text-[#b9cacb] mt-1">
+                    {estimate.feasibilityRating} Density
+                  </div>
+                </div>
+
+                {/* SVG Radial Progress Ring */}
+                <div className="relative w-14 h-14 flex items-center justify-center">
+                  <svg className="w-14 h-14 transform -rotate-90">
+                    <circle
+                      cx="28"
+                      cy="28"
+                      fill="none"
+                      r="22"
+                      stroke="#1F2536"
+                      strokeWidth="4"
+                    />
+                    <circle
+                      cx="28"
+                      cy="28"
+                      fill="none"
+                      r="22"
+                      stroke="url(#cyan-violet-grad)"
+                      strokeDasharray={gaugeCircumference}
+                      strokeDashoffset={gaugeOffset}
+                      strokeLinecap="round"
+                      strokeWidth="4"
+                      className="transition-all duration-700 ease-out"
+                    />
+                    <defs>
+                      <linearGradient id="cyan-violet-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#00F2FE" />
+                        <stop offset="100%" stopColor="#9055FF" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <span className="material-symbols-outlined absolute text-[16px] text-[#00f2fe]">
+                    hub
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Architecture Topology Canvas */}
+            <div className="rounded-lg bg-[#191b22] border border-[#3a494b] overflow-hidden" id="topology">
+              <div className="p-3.5 border-b border-[#3a494b]/60 flex items-center justify-between bg-[#1e1f26]/60">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#00f2fe] text-[18px]">schema</span>
+                  <span className="font-space font-semibold text-[#e0fdff] text-sm">
+                    Synthesized Mesh Topology
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#4edea3] neon-pulse-emerald"></span>
+                  <span className="text-mono-code text-[11px] text-[#b9cacb]">Live Flow</span>
+                </div>
+              </div>
+
+              {/* Topological Node Canvas */}
+              <div className="p-4 bg-[#0c0e14] relative min-h-[300px] flex flex-col justify-between cyber-grid-canvas">
+                {/* SVG Connector Lines Overlay */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+                  <path
+                    className="topology-flow-line"
+                    d="M 120 44 L 120 80"
+                    opacity="0.6"
+                    stroke="#00F2FE"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    className="topology-flow-line"
+                    d="M 120 130 L 120 166"
+                    opacity="0.6"
+                    stroke="#00F2FE"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    className="topology-flow-line"
+                    d="M 120 216 L 120 252"
+                    opacity="0.7"
+                    stroke="#9055FF"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+
+                {/* Layer 1: Edge CDN */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 p-2 rounded-lg bg-[#1e1f26] border border-[#00f2fe]/40 shadow-[0_0_10px_rgba(0,242,254,0.15)] w-64">
+                    <div className="w-7 h-7 rounded bg-[#00f2fe]/20 flex items-center justify-center text-[#00f2fe]">
+                      <span className="material-symbols-outlined text-[16px]">public</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-[#e0fdff]">
+                        Edge CDN / Cloudflare
+                      </span>
+                      <span className="text-[10px] font-mono-code text-[#849495]">
+                        Anycast SSL • DDoS Guard
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-mono-code text-[10px] px-2 py-0.5 rounded bg-[#1e1f26] border border-[#3a494b] text-[#4edea3]">
+                    p99 &lt; 14ms
+                  </span>
+                </div>
+
+                {/* Layer 2: API Gateway */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 p-2 rounded-lg bg-[#1e1f26] border border-[#3a494b] hover:border-[#00f2fe]/50 transition-colors w-64">
+                    <div className="w-7 h-7 rounded bg-[#373940] flex items-center justify-center text-[#e0fdff]">
+                      <span className="material-symbols-outlined text-[16px]">alt_route</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-[#e2e2eb]">Envoy Gateway Mesh</span>
+                      <span className="text-[10px] font-mono-code text-[#849495]">
+                        JWT Auth • Rate Limiting
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-mono-code text-[10px] px-2 py-0.5 rounded bg-[#1e1f26] border border-[#3a494b] text-[#849495]">
+                    mTLS v1.3
+                  </span>
+                </div>
+
+                {/* Layer 3: Compute & Swarm */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 p-2 rounded-lg bg-[#1e1f26] border border-[#00f2fe]/40 w-64">
+                    <div className="w-7 h-7 rounded bg-[#00f2fe]/20 flex items-center justify-center text-[#00f2fe]">
+                      <span className="material-symbols-outlined text-[16px]">terminal</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-[#e0fdff]">
+                        {config.selectedBackend[0] || "Worker Pods"}
+                      </span>
+                      <span className="text-[10px] font-mono-code text-[#849495]">
+                        Autoscaling HPA (3..30)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 p-1 px-2 rounded-lg bg-[#1e1f26] border border-[#d2bbff] shadow-[0_0_10px_rgba(144,85,255,0.25)]">
+                    <span className="material-symbols-outlined text-[13px] text-[#d2bbff]">
+                      auto_fix_high
+                    </span>
+                    <span className="text-mono-code text-[10px] text-[#d2bbff]">Swarm Active</span>
+                  </div>
+                </div>
+
+                {/* Layer 4: Data & Vector */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 p-2 rounded-lg bg-[#1e1f26] border border-[#d2bbff]/40 w-64">
+                    <div className="w-7 h-7 rounded bg-[#5c03cb]/30 flex items-center justify-center text-[#d2bbff]">
+                      <span className="material-symbols-outlined text-[16px]">database</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-[#d2bbff]">
+                        {config.selectedDatabase[0] || "PostgreSQL"}
+                      </span>
+                      <span className="text-[10px] font-mono-code text-[#849495]">
+                        HNSW Index • HA Replica
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-mono-code text-[10px] px-2 py-0.5 rounded bg-[#1e1f26] border border-[#3a494b] text-[#4edea3]">
+                    HA Active
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Aria AI Solution Architect Consultation Widget */}
+            <div className="rounded-lg bg-[#191b22] border border-[#3a494b] p-4 flex flex-col gap-3" id="aria">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#5c03cb]/40 border border-[#d2bbff] flex items-center justify-center text-[#d2bbff] shadow-[0_0_10px_rgba(144,85,255,0.3)]">
+                    <span className="material-symbols-outlined text-[18px]">smart_toy</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-[#e0fdff] block leading-tight">
+                      Aria AI Architect
+                    </span>
+                    <span className="text-mono-code text-[10px] text-[#4edea3]">
+                      Synthesizing System Blueprint
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-mono-code px-2 py-0.5 rounded bg-[#1e1f26] border border-[#3a494b] text-[#849495]">
+                  v4.2 PRO
+                </span>
+              </div>
+
+              {/* Real-time Advice Alert / Chat Dialog */}
+              <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                {chatMessages.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`p-2.5 rounded text-xs leading-relaxed ${
+                      msg.sender === "You"
+                        ? "bg-[#1e1f26] border border-[#3a494b] text-[#e2e2eb] ml-6"
+                        : "bg-[#1e1f26]/90 border-l-2 border-[#00f2fe] text-[#b9cacb] mr-2"
+                    }`}
+                  >
+                    <div className="font-semibold text-[#e0fdff] text-[11px] mb-0.5 font-space">
+                      {msg.sender}:
+                    </div>
+                    <p>{msg.text}</p>
+                    {msg.recs && msg.recs.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-[#3a494b]/40 flex flex-wrap gap-1">
+                        {msg.recs.map((rec, rIdx) => (
+                          <span
+                            key={rIdx}
+                            className="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-[#0c0e14] text-[#4edea3]"
+                          >
+                            ✓ {rec}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {isAriaLoading && (
+                  <div className="text-xs font-mono-code text-[#00f2fe] animate-pulse">
+                    Aria is synthesizing architectural changes...
+                  </div>
+                )}
+              </div>
+
+              {/* Prompt Bar & Quick Action Chips */}
+              <div className="flex flex-col gap-2 mt-1">
+                <div className="relative flex items-center">
+                  <input
+                    value={ariaPrompt}
+                    onChange={(e) => setAriaPrompt(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAriaSubmit()}
+                    type="text"
+                    placeholder="Ask Aria to optimize cost, add compliance, or generate Terraform..."
+                    className="w-full bg-[#0c0e14] border border-[#3a494b] rounded-lg pl-3 pr-24 py-2 text-xs text-[#e2e2eb] placeholder:text-[#849495] focus:border-[#00f2fe] focus:outline-none focus:ring-1 focus:ring-[#00f2fe]"
+                  />
+                  <button
+                    onClick={() => handleAriaSubmit()}
+                    disabled={isAriaLoading || !ariaPrompt.trim()}
+                    className="absolute right-1 px-3 py-1 rounded bg-[#00f2fe] text-[#002022] text-xs font-bold hover:shadow-[0_0_10px_rgba(0,242,254,0.4)] transition-all disabled:opacity-40"
+                  >
+                    Synthesize
+                  </button>
+                </div>
+
+                {/* 1-Click Prompt Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => handleAriaSubmit("Run Cost Optimization on current stack")}
+                    className="text-[10px] font-mono-code px-2 py-1 rounded bg-[#1e1f26] hover:bg-[#282a30] border border-[#3a494b] text-[#b9cacb] hover:text-[#00f2fe] transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[12px] text-[#00f2fe]">
+                      auto_fix_normal
+                    </span>{" "}
+                    Run Cost Optimization
+                  </button>
+                  <button
+                    onClick={() => handleAriaSubmit("Add HIPAA Encryption & SOC2 Audit Trail")}
+                    className="text-[10px] font-mono-code px-2 py-1 rounded bg-[#1e1f26] hover:bg-[#282a30] border border-[#3a494b] text-[#b9cacb] hover:text-[#d2bbff] transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[12px] text-[#d2bbff]">
+                      verified_user
+                    </span>{" "}
+                    Add HIPAA Encryption
+                  </button>
+                  <button
+                    onClick={() => handleAriaSubmit("Export Terraform Infrastructure Blueprint")}
+                    className="text-[10px] font-mono-code px-2 py-1 rounded bg-[#1e1f26] hover:bg-[#282a30] border border-[#3a494b] text-[#b9cacb] hover:text-[#4edea3] transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[12px] text-[#4edea3]">
+                      terminal
+                    </span>{" "}
+                    Export Terraform
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-800/80 mt-12 py-6 text-center text-xs text-gray-500">
-        Cynbit Technologies Full Stack Engineering Assessment Prototype • Implemented by Naman Kalia
+      {/* ================= DOCKED BOTTOM STATUS BAR ================= */}
+      <footer className="border-t border-[#3a494b]/40 bg-[#0c0e14] px-4 sm:px-8 py-3 text-xs text-[#b9cacb]">
+        <div className="max-w-[1680px] mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-4 text-[11px] font-mono-code flex-wrap justify-center">
+            <span className="flex items-center gap-1.5 text-[#e0fdff]">
+              <span className="w-2 h-2 rounded-full bg-[#00f2fe]"></span> CYNBIT ORCHESTRATION KERNEL:
+              ONLINE
+            </span>
+            <span className="text-[#849495]">|</span>
+            <span className="text-[#849495]">Region: us-east-1 (N. Virginia)</span>
+            <span className="text-[#849495]">|</span>
+            <span className="text-[#4edea3]">Mesh Consensus: 99.999% Deterministic</span>
+          </div>
+          <div className="flex items-center gap-4 text-[11px] font-mono-code text-[#849495]">
+            <span>© 2026 CYNBIT TECHNOLOGIES INC. ALL RIGHTS RESERVED.</span>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -113,9 +113,9 @@ npm run dev
 
 ## 🌐 Live Deployment Guide
 
-This project is built using standard Next.js 15 and is zero-config ready for instant 1-click deployment on **Vercel** or **Netlify**:
+This project is live-deployed on **GitHub Pages CDN**:
+👉 **Live Deployed Prototype URL**: [https://namthegreat.github.io/cynbit-website-improvement/](https://namthegreat.github.io/cynbit-website-improvement/)
 
-1. Push this repository to your GitHub account (`NamTheGreat/cynbit-website-improvement`).
-2. Go to [Vercel](https://vercel.com/new) and click **"Import"** next to `cynbit-website-improvement`.
-3. Click **"Deploy"** (no environment variables required for standard operation).
-4. Vercel will output your live URL (e.g. `https://cynbit-architecture-studio.vercel.app`), which fulfills **Deliverable #2**.
+It is also zero-config ready for 1-click deployment on **Vercel** or **Netlify**:
+1. Go to [Vercel](https://vercel.com/new) and click **"Import"** next to `NamTheGreat/cynbit-website-improvement`.
+2. Click **"Deploy"** (default settings; no environment variables needed).
